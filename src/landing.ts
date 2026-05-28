@@ -300,6 +300,7 @@ Tools that require a key only appear in <code>tools/list</code> when that key is
 
 <footer>
   Built by <a href="https://x.com/ai_kulikov" target="_blank" rel="noopener">@ai_kulikov</a> on X.
+  Source on <a href="https://github.com/4kulia/sailing-mcp" target="_blank" rel="noopener">GitHub</a>.
   All times returned by tools are UTC. This server is provided as-is for sailing use; always verify against official charts, almanacs and notices before relying on it for navigation safety.
 </footer>
 
