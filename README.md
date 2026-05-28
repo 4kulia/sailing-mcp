@@ -125,7 +125,7 @@ Settings → **Connectors** → **Add custom connector** → paste the URL. No O
 - All provider keys are read per-request from the URL/headers and are never logged or persisted.
 - All times returned by tools are **UTC**.
 - `tides_nl` (Matroos) is more accurate than `tides_worldtides` in Dutch waters; prefer it there.
-- NDW bridge data carries RIS-index location codes and coordinates but **no bridge names** — cross-reference with `marinas_osm` or a chart.
+- NDW bridge data carries only RIS-index codes + coordinates; `bridges_nl` enriches them with bridge names from OpenStreetMap (nearest movable bridge within 80 m). A few may still show "(name unknown)" if OSM has no nearby named bridge.
 - AISStream is community-fed; coverage is excellent in coastal Europe/Americas, sparse mid-ocean.
 - This is provided as-is for sailing use. **Always verify against official charts, almanacs and notices before relying on it for navigation safety.**
 

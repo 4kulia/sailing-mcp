@@ -181,7 +181,7 @@ export const LANDING_HTML = `<!doctype html>
     </tr>
     <tr>
       <td class="tool">bridges_nl</td>
-      <td>Scheduled bridge openings on Dutch waterways. Source: NDW DATEX II feed (refreshed every 5 min).</td>
+      <td>Scheduled bridge openings on Dutch waterways, with bridge names resolved from OpenStreetMap. Source: NDW DATEX II feed (refreshed every 5 min).</td>
       <td class="req"><span class="free">free</span></td>
     </tr>
     <tr>

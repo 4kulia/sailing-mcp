@@ -152,6 +152,79 @@ export function formatPois(opts: { lat: number; lon: number; radiusKm: number; k
   return lines.join("\n");
 }
 
+export interface OsmBridge {
+  name: string;
+  lat: number;
+  lon: number;
+  movable: boolean;
+}
+
+/**
+ * Fetch named bridges inside a bounding box (south, west, north, east) in one
+ * Overpass call. Used to enrich NDW bridge events (which carry no names).
+ */
+export async function fetchNamedBridges(bbox: {
+  south: number;
+  west: number;
+  north: number;
+  east: number;
+}): Promise<OsmBridge[]> {
+  const b = `${bbox.south},${bbox.west},${bbox.north},${bbox.east}`;
+  const ql =
+    `[out:json][timeout:25];` +
+    `(way["bridge"]["name"](${b});node["bridge"]["name"](${b});` +
+    `way["man_made"="bridge"]["name"](${b}););` +
+    `out tags center 5000;`;
+
+  const res = await fetch(`${OVERPASS_URL}?data=${encodeURIComponent(ql)}`, {
+    headers: { "user-agent": UA, accept: "application/json" },
+  });
+  if (!res.ok) throw new Error(`Overpass ${res.status}`);
+  const data = (await res.json()) as OverpassResponse;
+
+  const out: OsmBridge[] = [];
+  for (const e of data.elements) {
+    const lat = e.lat ?? e.center?.lat;
+    const lon = e.lon ?? e.center?.lon;
+    const name = e.tags?.name ?? e.tags?.["bridge:name"];
+    if (lat == null || lon == null || !name) continue;
+    const bridge = e.tags?.bridge ?? "";
+    const movable =
+      bridge === "movable" ||
+      bridge === "bascule" ||
+      bridge === "swing" ||
+      e.tags?.["bridge:movable"] != null;
+    out.push({ name, lat, lon, movable });
+  }
+  return out;
+}
+
+/**
+ * Pick the best OSM bridge name for a target coordinate: nearest match within
+ * threshold, preferring movable bridges (the ones that actually open).
+ */
+export function matchBridgeName(
+  targetLat: number,
+  targetLon: number,
+  bridges: OsmBridge[],
+  thresholdM: number,
+): string | undefined {
+  const thresholdKm = thresholdM / 1000;
+  let best: { name: string; dist: number; movable: boolean } | undefined;
+  for (const br of bridges) {
+    const dist = haversineKm(targetLat, targetLon, br.lat, br.lon);
+    if (dist > thresholdKm) continue;
+    if (
+      !best ||
+      (br.movable && !best.movable) ||
+      (br.movable === best.movable && dist < best.dist)
+    ) {
+      best = { name: br.name, dist, movable: br.movable };
+    }
+  }
+  return best?.name;
+}
+
 export function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;
   const toRad = (d: number) => (d * Math.PI) / 180;

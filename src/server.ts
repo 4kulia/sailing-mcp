@@ -809,7 +809,7 @@ function registerBridgesNlTool(server: McpServer): void {
     {
       title: "Bridge opening schedule — Netherlands (NDW)",
       description:
-        "Scheduled bridge openings for Dutch waterways from NDW's planningsfeed_brugopeningen (DATEX II). Returns each bridge in range with its upcoming opening windows (start/end UTC, duration). NOTE: NDW does not include bridge NAMES, only RIS-index codes + coordinates — cross-reference with marinas_osm or a chart to identify the bridge. Free, no key. Feed refreshed every 5 minutes.",
+        "Scheduled bridge openings for Dutch waterways from NDW's planningsfeed_brugopeningen (DATEX II). Returns each bridge in range with its upcoming opening windows (start/end UTC, duration). Bridge names are enriched from OpenStreetMap (NDW itself carries only RIS-index codes + coordinates). Free, no key. Feed refreshed every 5 minutes.",
       inputSchema: {
         lat: z.number().min(-90).max(90),
         lon: z.number().min(-180).max(180),
@@ -817,6 +817,10 @@ function registerBridgesNlTool(server: McpServer): void {
         hoursForward: z.number().int().min(1).max(168).default(24),
         hoursBack: z.number().int().min(0).max(72).default(0),
         limitPerBridge: z.number().int().min(1).max(50).default(8),
+        resolveNames: z
+          .boolean()
+          .default(true)
+          .describe("Look up bridge names from OpenStreetMap (one extra Overpass call). Disable for a faster, codes-only response."),
       },
     },
     async (args) => {
@@ -828,6 +832,7 @@ function registerBridgesNlTool(server: McpServer): void {
           hoursForward: args.hoursForward,
           hoursBack: args.hoursBack,
           limitPerBridge: args.limitPerBridge,
+          resolveNames: args.resolveNames,
         });
         const text = formatBridgeReport(report, {
           lat: args.lat,
@@ -836,6 +841,7 @@ function registerBridgesNlTool(server: McpServer): void {
           hoursForward: args.hoursForward,
           hoursBack: args.hoursBack,
           limitPerBridge: args.limitPerBridge,
+          resolveNames: args.resolveNames,
         });
         return { content: [{ type: "text", text }] };
       } catch (err) {

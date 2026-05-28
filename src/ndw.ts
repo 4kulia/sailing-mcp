@@ -1,6 +1,6 @@
 import { XMLParser } from "fast-xml-parser";
 import { gunzipSync } from "node:zlib";
-import { haversineKm } from "./osm.js";
+import { fetchNamedBridges, haversineKm, matchBridgeName } from "./osm.js";
 
 const FEED_URL = "https://opendata.ndw.nu/planningsfeed_brugopeningen.xml.gz";
 const TTL_MS = 5 * 60_000;
@@ -86,11 +86,13 @@ export interface BridgeQuery {
   hoursForward: number;
   hoursBack: number;
   limitPerBridge: number;
+  resolveNames: boolean;
 }
 
 export interface BridgeReport {
   bridges: Array<{
     locationCode: string;
+    name?: string;
     lat: number;
     lon: number;
     distKm: number;
@@ -99,6 +101,7 @@ export interface BridgeReport {
   totalEvents: number;
   totalBridges: number;
   feedAgeSec: number;
+  namesResolved: boolean;
 }
 
 export async function queryBridges(q: BridgeQuery): Promise<BridgeReport> {
@@ -121,6 +124,7 @@ export async function queryBridges(q: BridgeQuery): Promise<BridgeReport> {
 
   const bridges = Array.from(byLoc.entries()).map(([locationCode, v]) => ({
     locationCode,
+    name: undefined as string | undefined,
     lat: v.lat,
     lon: v.lon,
     distKm: haversineKm(q.lat, q.lon, v.lat, v.lon),
@@ -128,11 +132,33 @@ export async function queryBridges(q: BridgeQuery): Promise<BridgeReport> {
   }));
   bridges.sort((a, b) => a.distKm - b.distKm);
 
+  let namesResolved = false;
+  if (q.resolveNames && bridges.length > 0) {
+    try {
+      const dLat = q.radiusKm / 111;
+      const dLon = q.radiusKm / (111 * Math.cos((q.lat * Math.PI) / 180));
+      const osmBridges = await fetchNamedBridges({
+        south: q.lat - dLat,
+        west: q.lon - dLon,
+        north: q.lat + dLat,
+        east: q.lon + dLon,
+      });
+      for (const b of bridges) {
+        b.name = matchBridgeName(b.lat, b.lon, osmBridges, 80);
+      }
+      namesResolved = true;
+    } catch {
+      // OSM enrichment is best-effort; keep RIS codes if it fails.
+      namesResolved = false;
+    }
+  }
+
   return {
     bridges,
     totalEvents: bridges.reduce((s, b) => s + b.events.length, 0),
     totalBridges: bridges.length,
     feedAgeSec: cache ? Math.round((Date.now() - cache.fetchedAt) / 1000) : 0,
+    namesResolved,
   };
 }
 
@@ -145,7 +171,11 @@ export function formatBridgeReport(report: BridgeReport, q: BridgeQuery): string
   lines.push(`Bridges with scheduled openings: ${report.totalBridges} (total ${report.totalEvents} events)`);
   lines.push(`Feed age: ${report.feedAgeSec}s (TTL ${TTL_MS / 1000}s)`);
   lines.push(`Source: opendata.ndw.nu/planningsfeed_brugopeningen.xml.gz`);
-  lines.push(`Note: NDW does NOT include bridge names — use the location code + coordinates and cross-reference with OSM (marinas_osm or a map) for the bridge name.`);
+  if (report.namesResolved) {
+    lines.push(`Bridge names resolved from OpenStreetMap (nearest movable bridge ≤ 80 m). "(name unknown)" = no OSM match — RIS code still valid.`);
+  } else {
+    lines.push(`Note: bridge names not resolved (NDW carries RIS codes only). Cross-reference coordinates with a chart for the name.`);
+  }
   lines.push("");
 
   if (report.bridges.length === 0) {
@@ -154,7 +184,8 @@ export function formatBridgeReport(report: BridgeReport, q: BridgeQuery): string
   }
 
   for (const b of report.bridges) {
-    lines.push(`## ${b.locationCode || "(unknown)"} @ ${b.lat.toFixed(5)},${b.lon.toFixed(5)}  (${b.distKm.toFixed(1)} km)`);
+    const label = b.name ?? (report.namesResolved ? "(name unknown)" : b.locationCode || "(unknown)");
+    lines.push(`## ${label} — ${b.locationCode || "(unknown)"} @ ${b.lat.toFixed(5)},${b.lon.toFixed(5)}  (${b.distKm.toFixed(1)} km)`);
     lines.push("start_utc\tend_utc\tdur_min");
     for (const e of b.events) {
       lines.push(`${e.startUtc.toISOString()}\t${e.endUtc.toISOString()}\t${e.durationMin}`);
