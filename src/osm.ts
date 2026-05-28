@@ -157,6 +157,11 @@ export interface OsmBridge {
   lat: number;
   lon: number;
   movable: boolean;
+  /** true when the OSM element is a bridge structure (man_made=bridge or a
+   *  movable/bridge way with no highway/railway tag) — its name is the bridge
+   *  name. false when it is a road/rail way carrying bridge=yes, whose name is
+   *  the street, not the bridge. */
+  isStructure: boolean;
 }
 
 /**
@@ -186,22 +191,31 @@ export async function fetchNamedBridges(bbox: {
   for (const e of data.elements) {
     const lat = e.lat ?? e.center?.lat;
     const lon = e.lon ?? e.center?.lon;
-    const name = e.tags?.name ?? e.tags?.["bridge:name"];
+    const tags = e.tags ?? {};
+    const name = tags.name ?? tags["bridge:name"];
     if (lat == null || lon == null || !name) continue;
-    const bridge = e.tags?.bridge ?? "";
+    const bridge = tags.bridge ?? "";
     const movable =
       bridge === "movable" ||
       bridge === "bascule" ||
       bridge === "swing" ||
-      e.tags?.["bridge:movable"] != null;
-    out.push({ name, lat, lon, movable });
+      tags["bridge:movable"] != null;
+    // A road/rail carriageway carrying bridge=yes has its street name here, not
+    // the bridge name. The real bridge name lives on man_made=bridge outlines
+    // (and occasionally on a standalone movable way) which have no highway tag.
+    const carriesTraffic = tags.highway != null || tags.railway != null;
+    const isStructure = tags.man_made === "bridge" || !carriesTraffic;
+    out.push({ name, lat, lon, movable, isStructure });
   }
   return out;
 }
 
 /**
- * Pick the best OSM bridge name for a target coordinate: nearest match within
- * threshold, preferring movable bridges (the ones that actually open).
+ * Pick the best OSM bridge name for a target coordinate. Ranking:
+ *   1. structure elements (real bridge name) over road/rail elements (street name)
+ *   2. within the same tier, movable bridges over fixed
+ *   3. then nearest
+ * Road/rail names are only used as a last resort when no structure is in range.
  */
 export function matchBridgeName(
   targetLat: number,
@@ -210,19 +224,23 @@ export function matchBridgeName(
   thresholdM: number,
 ): string | undefined {
   const thresholdKm = thresholdM / 1000;
-  let best: { name: string; dist: number; movable: boolean } | undefined;
+  let best: { name: string; dist: number; movable: boolean; isStructure: boolean } | undefined;
   for (const br of bridges) {
     const dist = haversineKm(targetLat, targetLon, br.lat, br.lon);
     if (dist > thresholdKm) continue;
-    if (
-      !best ||
-      (br.movable && !best.movable) ||
-      (br.movable === best.movable && dist < best.dist)
-    ) {
-      best = { name: br.name, dist, movable: br.movable };
-    }
+    const cand = { name: br.name, dist, movable: br.movable, isStructure: br.isStructure };
+    if (!best || better(cand, best)) best = cand;
   }
   return best?.name;
+}
+
+function better(
+  a: { dist: number; movable: boolean; isStructure: boolean },
+  b: { dist: number; movable: boolean; isStructure: boolean },
+): boolean {
+  if (a.isStructure !== b.isStructure) return a.isStructure;
+  if (a.movable !== b.movable) return a.movable;
+  return a.dist < b.dist;
 }
 
 export function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
