@@ -1,0 +1,30 @@
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# Health check (no auth)
+	handle /healthz {
+		reverse_proxy windy-mcp:8787
+	}
+
+	# MCP endpoint — client passes ?key=... in URL
+	handle /mcp* {
+		reverse_proxy windy-mcp:8787 {
+			# MCP Streamable HTTP needs streaming responses
+			flush_interval -1
+		}
+	}
+
+	# Friendly root
+	handle / {
+		reverse_proxy windy-mcp:8787
+	}
+
+	# Hide everything else
+	handle {
+		respond 404
+	}
+}

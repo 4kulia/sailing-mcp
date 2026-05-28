@@ -1,0 +1,12 @@
+services:
+  windy-mcp:
+    build: .
+    image: windy-mcp:latest
+    container_name: windy-mcp
+    restart: unless-stopped
+    environment:
+      PORT: 8787
+      HOST: 0.0.0.0
+      MCP_PATH: /mcp
+    ports:
+      - "127.0.0.1:8787:8787"
