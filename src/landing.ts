@@ -190,6 +190,11 @@ export const LANDING_HTML = `<!doctype html>
       <td class="req"><span class="free">free</span></td>
     </tr>
     <tr>
+      <td class="tool">fairway_nl</td>
+      <td>Fairway depths, bridge passage heights (air draft) and locks from the RWS Fairway Information Service WFS. "Will my keel/mast fit?"</td>
+      <td class="req"><span class="free">free</span></td>
+    </tr>
+    <tr>
       <td class="tool">ais_traffic</td>
       <td>Live vessel snapshot via AISStream.io — MMSI, name, type, position, course, speed, destination within a radius.</td>
       <td class="req"><span>aisstream key</span></td>

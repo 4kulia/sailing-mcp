@@ -30,6 +30,7 @@ import { fetchOsmPois, formatPois, type OsmPoiKind } from "./osm.js";
 import { formatBridgeReport, queryBridges } from "./ndw.js";
 import { collectVessels, formatVessels } from "./aisstream.js";
 import { formatNotices, queryNotices, type NtsMessageType } from "./nts.js";
+import { formatFairway, queryFairway, type FairwayCategory } from "./fairway.js";
 import {
   STATIONS as RWS_STATIONS,
   fetchRwsWaterLevel,
@@ -115,6 +116,7 @@ export function createMcpServer(keys: RequestKeys = {}): McpServer {
   registerOsmTool(server);
   registerBridgesNlTool(server);
   registerNoticesNlTool(server);
+  registerFairwayNlTool(server);
   if (keys.worldtides) registerWorldTidesTool(server, keys.worldtides);
   if (keys.stormglass) registerStormglassTool(server, keys.stormglass);
   if (keys.aisstream) registerAisTool(server, keys.aisstream);
@@ -967,6 +969,54 @@ function registerNoticesNlTool(server: McpServer): void {
             limit: args.limit,
           },
           res,
+        );
+        return { content: [{ type: "text", text }] };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return { isError: true, content: [{ type: "text", text: msg }] };
+      }
+    },
+  );
+}
+
+function registerFairwayNlTool(server: McpServer): void {
+  const CatEnum = z.enum(["depth", "clearance", "lock"]);
+  server.registerTool(
+    "fairway_nl",
+    {
+      title: "Fairway depths, bridge clearance & locks — Netherlands (FIS)",
+      description:
+        "Official Dutch fairway reference data from the RWS Fairway Information Service WFS: fairway depths (keel clearance), bridge passage heights (air draft — clearance when closed/opened + width), and locks (chambers, remote control, contact). Free, no key. Use to check 'will my keel/mast fit' and to find locks on a route. Depths are relative to the stated reference level (NAP, KP=canal level).",
+      inputSchema: {
+        lat: z.number().min(-90).max(90),
+        lon: z.number().min(-180).max(180),
+        radiusKm: z.number().min(0.2).max(30).default(5),
+        categories: z
+          .array(CatEnum)
+          .min(1)
+          .default(["depth", "clearance", "lock"])
+          .describe("depth=fairway depths, clearance=bridge passage heights, lock=locks."),
+        limit: z.number().int().min(1).max(100).default(40),
+      },
+    },
+    async (args) => {
+      try {
+        const items = await queryFairway({
+          lat: args.lat,
+          lon: args.lon,
+          radiusKm: args.radiusKm,
+          categories: args.categories as FairwayCategory[],
+          limit: args.limit,
+        });
+        const text = formatFairway(
+          {
+            lat: args.lat,
+            lon: args.lon,
+            radiusKm: args.radiusKm,
+            categories: args.categories as FairwayCategory[],
+            limit: args.limit,
+          },
+          items,
         );
         return { content: [{ type: "text", text }] };
       } catch (err) {

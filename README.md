@@ -17,6 +17,7 @@ It is **stateless** and **multi-tenant by design**: every user passes their own 
 | `marinas_osm` | [OpenStreetMap / Overpass](https://overpass-api.de) — marinas, harbours, yacht clubs, anchorages, fuel | – |
 | `bridges_nl` | [NDW](https://opendata.ndw.nu) DATEX II — scheduled bridge openings (names via OSM) | – |
 | `notices_nl` | [RWS / EU NtS](https://www.vaarweginformatie.nl) — official Notices to Skippers, geo-filtered | – |
+| `fairway_nl` | [RWS FIS WFS](https://www.vaarweginformatie.nl) — fairway depths, bridge clearance (air draft), locks | – |
 | `list_models` | Built-in reference card (models, parameters, station codes) | – |
 | `sailing_forecast` / `point_forecast` | [Windy Point Forecast](https://api.windy.com) | Windy |
 | `tides_worldtides` | [WorldTides](https://www.worldtides.info) — global tide predictions | WorldTides |
@@ -149,6 +150,7 @@ src/
   osm.ts            # OpenStreetMap / Overpass POIs
   ndw.ts            # NDW bridge schedule (DATEX II)
   nts.ts            # Notices to Skippers (RWS / EU NtS SOAP)
+  fairway.ts        # Fairway depths / bridge clearance / locks (RWS FIS WFS)
   aisstream.ts      # AISStream live AIS snapshot
 Dockerfile
 docker-compose.yml        # + Caddy
