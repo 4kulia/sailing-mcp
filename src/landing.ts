@@ -185,6 +185,11 @@ export const LANDING_HTML = `<!doctype html>
       <td class="req"><span class="free">free</span></td>
     </tr>
     <tr>
+      <td class="tool">notices_nl</td>
+      <td>Official Notices to Skippers (RWS / EU NtS) — obstructions, works, closures, water/ice/weather notices, geo-filtered to a radius. Dutch text.</td>
+      <td class="req"><span class="free">free</span></td>
+    </tr>
+    <tr>
       <td class="tool">ais_traffic</td>
       <td>Live vessel snapshot via AISStream.io — MMSI, name, type, position, course, speed, destination within a radius.</td>
       <td class="req"><span>aisstream key</span></td>

@@ -29,6 +29,7 @@ import {
 import { fetchOsmPois, formatPois, type OsmPoiKind } from "./osm.js";
 import { formatBridgeReport, queryBridges } from "./ndw.js";
 import { collectVessels, formatVessels } from "./aisstream.js";
+import { formatNotices, queryNotices, type NtsMessageType } from "./nts.js";
 import {
   STATIONS as RWS_STATIONS,
   fetchRwsWaterLevel,
@@ -113,6 +114,7 @@ export function createMcpServer(keys: RequestKeys = {}): McpServer {
   registerMatroosTool(server);
   registerOsmTool(server);
   registerBridgesNlTool(server);
+  registerNoticesNlTool(server);
   if (keys.worldtides) registerWorldTidesTool(server, keys.worldtides);
   if (keys.stormglass) registerStormglassTool(server, keys.stormglass);
   if (keys.aisstream) registerAisTool(server, keys.aisstream);
@@ -905,6 +907,66 @@ function registerAisTool(server: McpServer, key: string): void {
             maxVessels: args.maxVessels,
           },
           vessels,
+        );
+        return { content: [{ type: "text", text }] };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return { isError: true, content: [{ type: "text", text: msg }] };
+      }
+    },
+  );
+}
+
+function registerNoticesNlTool(server: McpServer): void {
+  const TypeEnum = z.enum(["FTM", "WRM", "ICEM", "WERM"]);
+  server.registerTool(
+    "notices_nl",
+    {
+      title: "Notices to Skippers — Netherlands (official NtS)",
+      description:
+        "Official Notices to Skippers from Rijkswaterstaat / EU NtS web service: fairway & traffic obstructions, works, closures, water-related, ice and weather notices. Filtered to those currently/soon valid AND within a radius of your coordinate. Free, no key. Contents are in Dutch (translate as needed). Use before a passage to check for closures, dredging, obstructions, lock/bridge outages.",
+      inputSchema: {
+        lat: z.number().min(-90).max(90),
+        lon: z.number().min(-180).max(180),
+        radiusKm: z.number().min(0.5).max(100).default(25),
+        types: z
+          .array(TypeEnum)
+          .min(1)
+          .default(["FTM", "WRM"])
+          .describe("Message types: FTM=fairway/traffic, WRM=water-related, ICEM=ice, WERM=weather."),
+        daysAhead: z
+          .number()
+          .int()
+          .min(1)
+          .max(60)
+          .default(7)
+          .describe("Validity window: include notices valid within the next N days."),
+        limit: z.number().int().min(1).max(60).default(25),
+      },
+    },
+    async (args) => {
+      try {
+        const res = await queryNotices(
+          {
+            lat: args.lat,
+            lon: args.lon,
+            radiusKm: args.radiusKm,
+            types: args.types as NtsMessageType[],
+            daysAhead: args.daysAhead,
+            limit: args.limit,
+          },
+          new Date(),
+        );
+        const text = formatNotices(
+          {
+            lat: args.lat,
+            lon: args.lon,
+            radiusKm: args.radiusKm,
+            types: args.types as NtsMessageType[],
+            daysAhead: args.daysAhead,
+            limit: args.limit,
+          },
+          res,
         );
         return { content: [{ type: "text", text }] };
       } catch (err) {

@@ -15,7 +15,8 @@ It is **stateless** and **multi-tenant by design**: every user passes their own 
 | `tides_nl` | [RWS Matroos](https://noos.matroos.rws.nl) — HW/LW, astronomical, observed, forecast + surge, water temp (preferred for NL) | – |
 | `tides_rws` | [RWS Waterinfo](https://waterinfo.rws.nl) — observed water level (fallback) | – |
 | `marinas_osm` | [OpenStreetMap / Overpass](https://overpass-api.de) — marinas, harbours, yacht clubs, anchorages, fuel | – |
-| `bridges_nl` | [NDW](https://opendata.ndw.nu) DATEX II — scheduled bridge openings | – |
+| `bridges_nl` | [NDW](https://opendata.ndw.nu) DATEX II — scheduled bridge openings (names via OSM) | – |
+| `notices_nl` | [RWS / EU NtS](https://www.vaarweginformatie.nl) — official Notices to Skippers, geo-filtered | – |
 | `list_models` | Built-in reference card (models, parameters, station codes) | – |
 | `sailing_forecast` / `point_forecast` | [Windy Point Forecast](https://api.windy.com) | Windy |
 | `tides_worldtides` | [WorldTides](https://www.worldtides.info) — global tide predictions | WorldTides |
@@ -147,6 +148,7 @@ src/
   stormglass.ts     # Stormglass currents
   osm.ts            # OpenStreetMap / Overpass POIs
   ndw.ts            # NDW bridge schedule (DATEX II)
+  nts.ts            # Notices to Skippers (RWS / EU NtS SOAP)
   aisstream.ts      # AISStream live AIS snapshot
 Dockerfile
 docker-compose.yml        # + Caddy
