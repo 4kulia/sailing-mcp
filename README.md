@@ -18,6 +18,7 @@ It is **stateless** and **multi-tenant by design**: every user passes their own 
 | `bridges_nl` | [NDW](https://opendata.ndw.nu) DATEX II — scheduled bridge openings (names via OSM) | – |
 | `notices_nl` | [RWS / EU NtS](https://www.vaarweginformatie.nl) — official Notices to Skippers, geo-filtered | – |
 | `fairway_nl` | [RWS FIS WFS](https://www.vaarweginformatie.nl) — fairway depths, bridge clearance (air draft), locks | – |
+| `checklists` | Built-in — charter check-in, crew safety briefing, pre-departure, heavy weather, charter check-out | – |
 | `list_models` | Built-in reference card (models, parameters, station codes) | – |
 | `sailing_forecast` / `point_forecast` | [Windy Point Forecast](https://api.windy.com) | Windy |
 | `tides_worldtides` | [WorldTides](https://www.worldtides.info) — global tide predictions | WorldTides |

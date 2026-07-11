@@ -195,6 +195,11 @@ export const LANDING_HTML = `<!doctype html>
       <td class="req"><span class="free">free</span></td>
     </tr>
     <tr>
+      <td class="tool">checklists</td>
+      <td>Curated sailing checklists: bareboat charter check-in, crew safety briefing, pre-departure checks, heavy-weather prep, charter check-out. Always delivered in full.</td>
+      <td class="req"><span class="free">free</span></td>
+    </tr>
+    <tr>
       <td class="tool">ais_traffic</td>
       <td>Live vessel snapshot via AISStream.io — MMSI, name, type, position, course, speed, destination within a radius.</td>
       <td class="req"><span>aisstream key</span></td>
