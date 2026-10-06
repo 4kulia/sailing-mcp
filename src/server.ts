@@ -42,10 +42,13 @@ import { fetchWorldTides, formatWorldTides } from "./worldtides.js";
 import {
   CHECKLISTS,
   CHECKLIST_IDS,
+  countItems,
   formatChecklist,
   formatChecklistIndex,
   type ChecklistId,
 } from "./checklists.js";
+import { CHECKLISTS_UI_URI, checklistsUiHtml } from "./checklists-ui.js";
+import { RESOURCE_MIME_TYPE, registerAppResource, registerAppTool } from "@modelcontextprotocol/ext-apps/server";
 import { fetchCurrents, formatCurrents } from "./stormglass.js";
 import { type RequestKeys } from "./keys.js";
 
@@ -109,7 +112,7 @@ export function createMcpServer(keys: RequestKeys = {}): McpServer {
     {
       capabilities: { tools: {} },
       instructions:
-        "Sailing navigation. Wind/wave forecasts via Open-Meteo (free) and optionally Windy. Tides via RWS (NL observed) and optionally WorldTides (global predictions). Currents via Stormglass when key is provided. Curated sailing checklists (charter check-in, safety briefing, etc.) via the checklists tool — always relay checklist items to the user in full, never summarized. Tools that require a key only appear when that key is set on the MCP URL. All times UTC.",
+        "Sailing navigation. Wind/wave forecasts via Open-Meteo (free) and optionally Windy. Tides via RWS (NL observed) and optionally WorldTides (global predictions). Currents via Stormglass when key is provided. Curated sailing checklists (charter check-in, safety briefing, etc.) via the checklists tool — shown as an interactive checklist where the client supports MCP Apps; otherwise always relay checklist items to the user in full, never summarized. Tools that require a key only appear when that key is set on the MCP URL. All times UTC.",
     },
   );
 
@@ -1036,29 +1039,69 @@ function registerFairwayNlTool(server: McpServer): void {
 }
 
 function registerChecklistsTool(server: McpServer): void {
-  server.registerTool(
+  registerAppResource(
+    server,
+    "Sailing checklist",
+    CHECKLISTS_UI_URI,
+    { description: "Interactive sailing checklist: tick items, flag problems, send a report to the chat." },
+    async () => ({
+      contents: [
+        {
+          uri: CHECKLISTS_UI_URI,
+          mimeType: RESOURCE_MIME_TYPE,
+          text: checklistsUiHtml(),
+          _meta: { ui: { prefersBorder: false } },
+        },
+      ],
+    }),
+  );
+
+  registerAppTool(
+    server,
     "checklists",
     {
       title: "Sailing checklists — charter check-in, safety briefing, and more",
       description:
         "Curated sailing checklists: charter_checkin (bareboat acceptance), safety_briefing (crew brief before departure), pre_departure (daily checks), heavy_weather (preparation), charter_checkout (returning the boat). " +
         "Call without 'checklist' to get the index of available checklists. " +
-        "CRITICAL: these are safety checklists — when relaying one to the user, ALWAYS present EVERY item in full and in order (translated to the user's language if needed). Never summarize, merge or omit items; if the response gets long, split it into several messages instead.",
+        "In clients that support MCP Apps the result is shown to the user as an interactive checklist (tick items, flag problems); there, introduce it briefly instead of re-listing the items. " +
+        "Otherwise — CRITICAL: these are safety checklists — when relaying one to the user, ALWAYS present EVERY item in full and in order (translated to the user's language if needed). Never summarize, merge or omit items; if the response gets long, split it into several messages instead.",
       inputSchema: {
         checklist: z
           .enum(CHECKLIST_IDS)
           .optional()
           .describe("Which checklist to fetch. Omit to list all available checklists."),
       },
+      annotations: { readOnlyHint: true, openWorldHint: false },
+      _meta: { ui: { resourceUri: CHECKLISTS_UI_URI } },
     },
     async (args) => {
-      const text = args.checklist
-        ? formatChecklist(CHECKLISTS[args.checklist as ChecklistId])
-        : formatChecklistIndex();
-      return { content: [{ type: "text", text }] };
+      if (args.checklist) {
+        const cl = CHECKLISTS[args.checklist as ChecklistId];
+        return {
+          content: [{ type: "text", text: WIDGET_NOTE + formatChecklist(cl) }],
+          structuredContent: { view: "checklist", checklist: cl },
+        };
+      }
+      return {
+        content: [{ type: "text", text: formatChecklistIndex() }],
+        structuredContent: {
+          view: "index",
+          checklists: CHECKLIST_IDS.map((id) => ({
+            id,
+            title: CHECKLISTS[id].title,
+            summary: CHECKLISTS[id].summary,
+            items: countItems(CHECKLISTS[id]),
+          })),
+        },
+      };
     },
   );
 }
+
+const WIDGET_NOTE =
+  "NOTE FOR THE ASSISTANT: if your interface renders this result as an interactive checklist widget, the user already sees every item there — " +
+  "give a one- or two-sentence intro and do not repeat the items. If there is no widget, follow the presentation rule below.\n\n";
 
 function registerListModelsTool(server: McpServer): void {
   server.registerTool(

@@ -196,7 +196,7 @@ export const LANDING_HTML = `<!doctype html>
     </tr>
     <tr>
       <td class="tool">checklists</td>
-      <td>Curated sailing checklists: bareboat charter check-in, crew safety briefing, pre-departure checks, heavy-weather prep, charter check-out. Always delivered in full.</td>
+      <td>Curated sailing checklists: bareboat charter check-in, crew safety briefing, pre-departure checks, heavy-weather prep, charter check-out. Interactive in Claude and ChatGPT: tick items, flag problems, send a report to the chat.</td>
       <td class="req"><span class="free">free</span></td>
     </tr>
     <tr>

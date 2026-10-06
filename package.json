@@ -13,12 +13,14 @@
     "url": "https://github.com/4kulia/sailing-mcp.git"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && npm run build:ui",
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.ui.json",
+    "build:ui": "esbuild src/ui/checklists-app.ts --bundle --format=iife --minify --target=es2020 --outfile=dist/ui/checklists-app.js"
   },
   "dependencies": {
+    "@modelcontextprotocol/ext-apps": "^1.7.5",
     "@modelcontextprotocol/sdk": "^1.18.0",
     "express": "^4.21.2",
     "fast-xml-parser": "^4.5.0",
@@ -31,6 +33,7 @@
     "@types/node": "^22.10.0",
     "@types/suncalc": "^1.9.2",
     "@types/ws": "^8.5.13",
+    "esbuild": "^0.28.2",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   },

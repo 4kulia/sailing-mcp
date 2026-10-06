@@ -473,7 +473,7 @@ export const CHECKLISTS: Record<ChecklistId, Checklist> = {
   charter_checkout: CHARTER_CHECKOUT,
 };
 
-function countItems(cl: Checklist): number {
+export function countItems(cl: Checklist): number {
   return cl.sections.reduce((n, s) => n + s.items.length, 0);
 }
 
