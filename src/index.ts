@@ -55,7 +55,26 @@ app.get("/healthz", (_req, res) => {
   res.json({ ok: true });
 });
 
+// One line per MCP request: client, JSON-RPC method (+ tool/resource name), status, size. No bodies or keys.
+function logMcp(req: Request, res: Response): void {
+  const started = Date.now();
+  const msgs = Array.isArray(req.body) ? req.body : [req.body];
+  const what = msgs
+    .map((m: { method?: string; params?: { name?: string; uri?: string; cursor?: string; protocolVersion?: string } }) => {
+      const p = m?.params;
+      const detail = p?.name ?? p?.uri ?? p?.protocolVersion ?? (p?.cursor ? `cursor=${p.cursor}` : "");
+      return `${m?.method ?? "?"}${detail ? `(${detail})` : ""}`;
+    })
+    .join(",");
+  res.on("finish", () => {
+    console.log(
+      `mcp ${what} ${res.statusCode} ${res.getHeader("content-length") ?? "-"}B ${Date.now() - started}ms ua=${req.header("user-agent") ?? "-"}`,
+    );
+  });
+}
+
 const handleMcp = async (req: Request, res: Response) => {
+  logMcp(req, res);
   const keys = extractKeys(req);
   const server = createMcpServer(keys);
   const transport = new StreamableHTTPServerTransport({

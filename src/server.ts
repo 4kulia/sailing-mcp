@@ -1073,14 +1073,16 @@ function registerChecklistsTool(server: McpServer): void {
           .describe("Which checklist to fetch. Omit to list all available checklists."),
       },
       annotations: { readOnlyHint: true, openWorldHint: false },
-      _meta: { ui: { resourceUri: CHECKLISTS_UI_URI } },
+      // openai/outputTemplate: ChatGPT's legacy alias for ui.resourceUri, kept for older ChatGPT builds.
+      _meta: { ui: { resourceUri: CHECKLISTS_UI_URI }, "openai/outputTemplate": CHECKLISTS_UI_URI },
     },
     async (args) => {
       if (args.checklist) {
         const cl = CHECKLISTS[args.checklist as ChecklistId];
         return {
           content: [{ type: "text", text: WIDGET_NOTE + formatChecklist(cl) }],
-          structuredContent: { view: "checklist", checklist: cl },
+          // Some clients hand the model structuredContent instead of the text, so the rule rides along.
+          structuredContent: { view: "checklist", presentation: CHECKLIST_PRESENTATION, checklist: cl },
         };
       }
       return {
@@ -1098,6 +1100,10 @@ function registerChecklistsTool(server: McpServer): void {
     },
   );
 }
+
+const CHECKLIST_PRESENTATION =
+  "If this checklist is shown to the user as an interactive widget, introduce it in one or two sentences and do not repeat the items. " +
+  "Otherwise relay EVERY item to the user in full and in order, keeping the sections; never summarize, merge or omit items.";
 
 const WIDGET_NOTE =
   "NOTE FOR THE ASSISTANT: if your interface renders this result as an interactive checklist widget, the user already sees every item there — " +
